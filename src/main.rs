@@ -139,6 +139,11 @@ fn main() {
              .short("u")
              .takes_value(false)
              .help("A single -u won't respect .gitignore (etc.) files. Two -u flags will additionally count hidden files and directories."))
+        .arg(Arg::with_name("csv")
+             .required(false)
+             .long("csv")
+             .help("Write the results as comma separated values.")
+             .takes_value(false))
         .arg(Arg::with_name("target")
             .multiple(true)
             .help("File or directory to count (multiple arguments accepted)"))
@@ -148,6 +153,8 @@ fn main() {
         Some(targets) => targets.collect(),
         None => vec!["."]
     };
+
+    let csv: bool = matches.is_present("csv");
 
     let sort: Sort = match matches.value_of("sort") {
         Some(string) => match Sort::from_str(string) {
@@ -349,7 +356,11 @@ fn main() {
                 .sort_by(|&(_, c1), &(_, c2)| c2.count.lines.cmp(&c1.count.lines)),
         }
 
-        print_totals_by_lang(&linesep, &totals_by_lang);
+        if csv{
+            print_totals_by_lang_as_csv(&totals_by_lang);
+        } else {
+            print_totals_by_lang(&linesep, &totals_by_lang);
+        }
     }
 
 }
@@ -409,4 +420,17 @@ fn print_totals_by_lang(linesep: &str, totals_by_lang: &[(&&Lang, &LangTotal)]) 
              totals.count.comment,
              totals.count.code);
     println!("{}", linesep);
+}
+
+fn print_totals_by_lang_as_csv(totals_by_lang: &[(&&Lang, &LangTotal)]) {
+    println!("files,language,lines,blank,comment,code");
+    for &(lang, total) in totals_by_lang {
+        println!("{},{},{},{},{},{}",
+                 total.files,
+                 lang,
+                 total.count.lines,
+                 total.count.blank,
+                 total.count.comment,
+                 total.count.code);
+    }
 }
