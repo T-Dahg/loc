@@ -144,6 +144,11 @@ fn main() {
              .long("csv")
              .help("Write the results as comma separated values.")
              .takes_value(false))
+        .arg(Arg::with_name("csv-delimiter")
+             .required(false)
+             .long("csv-delimiter")
+             .help("Use a character as a delimiter for comma seperated files instead of ,. This switch forces --csv to be on.")
+             .takes_value(true))
         .arg(Arg::with_name("target")
             .multiple(true)
             .help("File or directory to count (multiple arguments accepted)"))
@@ -154,7 +159,16 @@ fn main() {
         None => vec!["."]
     };
 
-    let csv: bool = matches.is_present("csv");
+    let csv: bool = matches.is_present("csv") || matches.is_present("csv-delimiter");
+
+    let csv_delimiter: char = match matches.value_of("csv-delimiter") {
+        Some(delimiter) if delimiter.len() == 1 => delimiter.chars().next().unwrap(),
+        Some(_) => {
+            println!("Only single characters can be csv delimiters. Defaulting to ','.");
+            ','
+        },
+        None => ',',
+    };
 
     let sort: Sort = match matches.value_of("sort") {
         Some(string) => match Sort::from_str(string) {
@@ -357,7 +371,7 @@ fn main() {
         }
 
         if csv{
-            print_totals_by_lang_as_csv(&totals_by_lang);
+            print_totals_by_lang_as_csv(csv_delimiter, &totals_by_lang);
         } else {
             print_totals_by_lang(&linesep, &totals_by_lang);
         }
@@ -422,15 +436,20 @@ fn print_totals_by_lang(linesep: &str, totals_by_lang: &[(&&Lang, &LangTotal)]) 
     println!("{}", linesep);
 }
 
-fn print_totals_by_lang_as_csv(totals_by_lang: &[(&&Lang, &LangTotal)]) {
+fn print_totals_by_lang_as_csv(delimiter: char, totals_by_lang: &[(&&Lang, &LangTotal)]) {
     println!("files,language,lines,blank,comment,code");
     for &(lang, total) in totals_by_lang {
-        println!("{},{},{},{},{},{}",
+        println!("{}{}{}{}{}{}{}{}{}{}{}",
                  total.files,
+                 delimiter,
                  lang,
+                 delimiter,
                  total.count.lines,
+                 delimiter,
                  total.count.blank,
+                 delimiter,
                  total.count.comment,
+                 delimiter,
                  total.count.code);
     }
 }
